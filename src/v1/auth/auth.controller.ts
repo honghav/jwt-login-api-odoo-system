@@ -4,6 +4,8 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
+import { UserRole } from '../users/user.entity';
+// import {  RegisterFaceDto } from './dto/face-verify.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -31,4 +33,21 @@ export class AuthController {
   async getProfile(@Request() req) {
     return this.authService.validateUser(req.user.userId);
   }
+
+  @Get('check-role')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check if user has a specific role' })
+  async checkRole(@Request() req, @Body() body: { requiredRole: UserRole }) {
+    return this.authService.checkRole(req.user.userId, body.requiredRole);
+  }
+// register face data for a user
+//    @Post('register-face')
+// registerFace(
+//   @Body()
+//   dto: RegisterFaceDto
+// ) {
+//   return this.authService
+//     .registerFace(dto)
+// }
 }

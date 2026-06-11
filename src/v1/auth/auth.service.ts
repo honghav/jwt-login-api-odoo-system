@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Logger, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { User, UserRole, UserPosition, UserStatus } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
+import {  RegisterFaceDto } from './dto/face-verify.dto';
+import { UserFace } from './face.entity';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +17,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    // @InjectRepository(UserFace)
+    // private userFaceRepository: Repository<UserFace>,
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
@@ -118,4 +122,46 @@ export class AuthService {
   async validateUser(userId: string) {
     return await this.usersService.findById(userId);
   }
+  async checkRole(userId: string, requiredRole: UserRole): Promise<boolean> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      this.logger.warn(`User not found for role check: ${userId}`);
+      return false;
+    }
+    return user.role === requiredRole;
+  }
+
+//  async registerFace(
+//   dto: RegisterFaceDto,
+// ) {
+//   const existing =
+//     await this.userFaceRepository.findOne({
+//       where: {
+//         email: dto.email,
+//       },
+//     })
+
+//   if (existing) {
+//     throw new BadRequestException(
+//       'Face already registered'
+//     )
+//   }
+
+//   const user =
+//     this.userFaceRepository.create({
+//       email: dto.email,
+//       faceDescriptor1:
+//         dto.descriptor,
+//     })
+
+//   await this.userFaceRepository.save(
+//     user,
+//   )
+
+//   return {
+//     success: true,
+//     message:
+//       'Face registered successfully',
+//   }
+// }
 }
