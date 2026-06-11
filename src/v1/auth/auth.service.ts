@@ -8,7 +8,6 @@ import { RegisterDto } from './dto/register.dto';
 import { User, UserRole, UserPosition, UserStatus } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
 import {  RegisterFaceDto } from './dto/face-verify.dto';
-import { UserFace } from './face.entity';
 
 @Injectable()
 export class AuthService {
