@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/v1/users/user.entity';
+import { Revenue } from 'src/v1/accounting/accounting.enitity';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
   const password = configService.get<string>('DB_PASSWORD');
@@ -17,7 +18,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     username: configService.get('DB_USERNAME'),
     password: password, // Ensure this is a string
     database: configService.get('DB_DATABASE'),
-    entities: [User],
+    entities: [User, Revenue],
     synchronize: true,
     logging: true,
     // Add these options for better compatibility
