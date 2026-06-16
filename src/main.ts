@@ -4,7 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 import { join } from 'path/win32';
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
@@ -32,6 +31,11 @@ async function bootstrap() {
     '/storage',
     express.static(join(process.cwd(), 'storage')),
   );
+  app.use(express.json({ limit: '20mb' }));
+  app.use(express.urlencoded({
+    limit: '20mb',
+    extended: true,
+  }));
   await app.listen(process.env.PORT || 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(`Swagger documentation: ${await app.getUrl()}/api`);
