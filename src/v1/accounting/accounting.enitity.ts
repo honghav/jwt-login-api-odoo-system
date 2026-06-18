@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "../users/user.entity";
 export enum TypeRevenue {
     SELL = 'sell',
@@ -31,9 +31,8 @@ export class Revenue {
   })
   type_revenue!: TypeRevenue;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'seller_id' })
-  seller!: User;
+   @Column({ type: 'uuid', nullable: true })
+  seller!: string;
 
   @Column({ default: false })
   approve!: boolean;
@@ -69,4 +68,13 @@ export class Revenue {
 
   @Column({ nullable: true })
   note?: string;
+   @ManyToOne(() => User, (user) => user.revenue)
+@JoinColumn({ name: 'seller' })
+user?: User;
+
+@CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

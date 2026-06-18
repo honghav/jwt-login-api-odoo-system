@@ -1,5 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { Attendance } from '../attendance/attendance.entity';
+import { Revenue } from '../accounting/accounting.enitity';
 
 export enum UserRole {
   ACCOUNTING = 'accounting',
@@ -60,6 +62,12 @@ export class User {
   })
   status!: UserStatus;
 
+  @OneToMany(() => Attendance, (attendance) => attendance.user)
+  attendance?: Attendance[];
+
+  @OneToMany(() => Revenue, (revenue) => revenue.user)
+  revenue?: Revenue[];
+  
   @CreateDateColumn()
   createdAt!: Date;
 

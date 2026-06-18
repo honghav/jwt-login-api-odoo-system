@@ -61,15 +61,15 @@ private saveBase64Image(base64: string): string {
 // CREATE
   async create(dto: CreateRevenueDto) {
     let user: User | null = null;
-    if (dto.seller) {
-      user = await this.userRepo.findOne({
-        where: { id: dto.seller },
-      });
+    // if (dto.seller) {
+    //   user = await this.userRepo.findOne({
+    //     where: { id: dto.seller },
+    //   });
 
-      if (!user || user.role !== 'accounting') {
-        throw new NotFoundException('User not found or not an accounting user');
-      }
-    }
+    //   if (!user || user.role !== 'accounting') {
+    //     throw new NotFoundException('User not found or not an accounting user');
+    //   }
+    // }
 
    let imagePath: string | undefined;
 
@@ -85,7 +85,6 @@ private saveBase64Image(base64: string): string {
     const revenue = this.revenueRepo.create({
       ...dto,
       image: imagePath,
-      seller: user || undefined,
     });
 
 
@@ -96,7 +95,7 @@ private saveBase64Image(base64: string): string {
   // FIND ALL
   async findAll() {
     return await this.revenueRepo.find({
-      relations: { seller: true },
+      relations: { user: true },
       order: { id: 'DESC' },
     });
   }
@@ -105,7 +104,7 @@ private saveBase64Image(base64: string): string {
   async findOne(id: string) {
     const revenue = await this.revenueRepo.findOne({
       where: { id },
-      relations: { seller: true },
+      relations: { user: true },
     });
 
     if (!revenue) {
