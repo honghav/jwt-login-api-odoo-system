@@ -1,0 +1,8 @@
+allowBuilds:
+  '@nestjs/core': false
+  '@scarf/scarf': false
+  '@tensorflow/tfjs-node': false
+  bcrypt: false
+  canvas: false
+  core-js: false
+  unrs-resolver: false

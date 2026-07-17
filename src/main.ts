@@ -15,7 +15,12 @@ async function bootstrap() {
   }));
   
   // Enable CORS
-  app.enableCors();
+  app.enableCors(
+       { origin: "http://localhost:3001", // your Nuxt app
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"], }
+  );
   
   // Swagger documentation
   const config = new DocumentBuilder()

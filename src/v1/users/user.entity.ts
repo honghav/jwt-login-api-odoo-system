@@ -68,6 +68,12 @@ export class User {
   @OneToMany(() => Revenue, (revenue) => revenue.user)
   revenue?: Revenue[];
   
+  @Column({ nullable: true })
+  telegramChatId?: string;
+
+  @Column({ nullable: true })
+  telegramUsername?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

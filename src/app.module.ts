@@ -9,6 +9,7 @@ import { AuthModule } from './v1/auth/auth.module';
 import { FaceModule } from './v1/face/face.module';
 import { AccountingModule } from './v1/accounting/accounting.module';
 import { AttendanceModule } from './v1/attendance/attendance.module';
+import { TelegramModule } from './v1/telegram/telegram.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { AttendanceModule } from './v1/attendance/attendance.module';
     UsersModule,
     AuthModule,
     FaceModule,
-    AttendanceModule
+    AttendanceModule,
+    TelegramModule
   ],
 })
 export class AppModule {}
