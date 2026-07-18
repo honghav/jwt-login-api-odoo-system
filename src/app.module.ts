@@ -10,6 +10,7 @@ import { FaceModule } from './v1/face/face.module';
 import { AccountingModule } from './v1/accounting/accounting.module';
 import { AttendanceModule } from './v1/attendance/attendance.module';
 import { TelegramModule } from './v1/telegram/telegram.module';
+import { CustomerModule } from './v1/customer/customer.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { TelegramModule } from './v1/telegram/telegram.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => getDatabaseConfig(configService),
+      useFactory: (configService: ConfigService) =>
+        getDatabaseConfig(configService),
       inject: [ConfigService],
     }),
     AccountingModule,
@@ -27,7 +29,8 @@ import { TelegramModule } from './v1/telegram/telegram.module';
     AuthModule,
     FaceModule,
     AttendanceModule,
-    TelegramModule
+    TelegramModule,
+    CustomerModule,
   ],
 })
 export class AppModule {}

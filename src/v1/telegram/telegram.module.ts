@@ -2,15 +2,16 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TelegramService } from './telegram.service';
 import { TelegramController } from './telegram.controller';
-import { User } from '../users/user.entity';
-import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
+import { CustomerModule } from '../customer/customer.module';
+import { CustomerTelegram } from '../customer/customer.enitity';
+import { User } from '../users/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
-    UsersModule,
+    TypeOrmModule.forFeature([CustomerTelegram, User]),
     AuthModule,
+    CustomerModule,
   ],
   controllers: [TelegramController],
   providers: [TelegramService],

@@ -1,11 +1,19 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/user.entity';
 import { Telegraf } from 'telegraf';
 import { BroadcastNotificationDto } from './dto/broadcast-notification.dto';
 import { SendNotificationDto } from './dto/send-notification.dto';
+import { CustomerTelegram } from '../customer/customer.enitity';
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class TelegramService implements OnModuleInit, OnModuleDestroy {
@@ -14,6 +22,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly configService: ConfigService,
+    @InjectRepository(CustomerTelegram)
+    private readonly customerRepository: Repository<CustomerTelegram>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
   ) {}
@@ -21,14 +31,16 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token || token === 'YOUR_TELEGRAM_BOT_TOKEN') {
-      this.logger.warn('TELEGRAM_BOT_TOKEN is not defined or is default. Telegram bot will be disabled.');
+      this.logger.warn(
+        'TELEGRAM_BOT_TOKEN is not defined or is default. Telegram bot will be disabled.',
+      );
       return;
     }
 
     try {
       this.bot = new Telegraf(token);
       this.setupBotCommands();
-      this.bot.launch().catch(err => {
+      this.bot.launch().catch((err) => {
         this.logger.error('Failed to launch Telegram bot: ' + err.message);
       });
       this.logger.log('Telegram Bot initialized and listening for commands.');
@@ -49,7 +61,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     // Command: /start
     this.bot.start((ctx) => {
-      const greeting = 
+      const greeting =
         `Welcome to the Notification Bot! 🤖\n\n` +
         `To link your system account and receive alerts, please use the /link command with your registered email.\n\n` +
         `Example:\n` +
@@ -66,9 +78,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.bot.help((ctx) => {
       ctx.reply(
         `Help Guide ℹ️\n\n` +
-        `• Link account: /link your_email@example.com\n` +
-        `• Check status: /status\n` +
-        `• Unlink account: /unlink`
+          `• Link account: /link your_email@example.com\n` +
+          `• Check status: /status\n` +
+          `• Unlink account: /unlink`,
       );
     });
 
@@ -78,7 +90,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const args = messageText.split(/\s+/).slice(1);
 
       if (args.length < 1) {
-        return ctx.reply('❌ Usage: /link <your_registered_email>\nExample: /link customer@example.com');
+        return ctx.reply(
+          '❌ Usage: /link <your_registered_email>\nExample: /link customer@example.com',
+        );
       }
 
       const email = args[0].trim().toLowerCase();
@@ -86,21 +100,31 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const username = ctx.from?.username || '';
 
       try {
-        const user = await this.usersRepository.findOne({ where: { email } });
-        if (!user) {
-          return ctx.reply(`❌ No registered user found with the email: ${email}`);
+        const customer = await this.customerRepository.findOne({
+          where: { customer_email: email },
+        });
+        if (!customer) {
+          return ctx.reply(
+            `❌ No registered user found with the email: ${email}`,
+          );
         }
 
         // Link the telegram chat ID
-        user.telegramChatId = chatId;
-        user.telegramUsername = username;
-        await this.usersRepository.save(user);
+        customer.telegram_chat_id = chatId;
+        customer.telegram_username = username;
+        await this.customerRepository.save(customer);
 
-        this.logger.log(`Telegram account linked successfully: ${email} -> Chat ID: ${chatId}`);
-        return ctx.reply(`✅ Successfully linked your Telegram account to ${user.name} (${user.email}). You will now receive system notifications here!`);
-      } catch (error) {
+        this.logger.log(
+          `Telegram account linked successfully: ${email} -> Chat ID: ${chatId}`,
+        );
+        return ctx.reply(
+          `✅ Successfully linked your Telegram account to ${customer.customer_name} (${customer.customer_email}). You will now receive system notifications here!`,
+        );
+      } catch (error: any) {
         this.logger.error(`Error linking user with Telegram: ${error.message}`);
-        return ctx.reply('❌ An error occurred while linking your account. Please try again later.');
+        return ctx.reply(
+          '❌ An error occurred while linking your account. Please try again later.',
+        );
       }
     });
 
@@ -109,21 +133,27 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const chatId = ctx.chat.id.toString();
 
       try {
-        const user = await this.usersRepository.findOne({ where: { telegramChatId: chatId } });
-        if (!user) {
-          return ctx.reply('❌ No account is currently linked to this Telegram chat.');
+        const customer = await this.customerRepository.findOne({
+          where: { telegram_chat_id: chatId },
+        });
+        if (!customer) {
+          return ctx.reply(
+            '❌ No account is currently linked to this Telegram chat.',
+          );
         }
 
-        const email = user.email;
-        user.telegramChatId = undefined;
-        user.telegramUsername = undefined;
-        await this.usersRepository.save(user);
+        const email = customer.customer_email;
+        customer.telegram_chat_id = undefined;
+        customer.telegram_username = undefined;
+        await this.customerRepository.save(customer);
 
         this.logger.log(`Telegram account unlinked: ${email}`);
         return ctx.reply(`✅ Successfully unlinked from account: ${email}.`);
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(`Error unlinking user: ${error.message}`);
-        return ctx.reply('❌ An error occurred while unlinking. Please try again.');
+        return ctx.reply(
+          '❌ An error occurred while unlinking. Please try again.',
+        );
       }
     });
 
@@ -131,17 +161,19 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.bot.command('status', async (ctx) => {
       const chatId = ctx.chat.id.toString();
       try {
-        const user = await this.usersRepository.findOne({ where: { telegramChatId: chatId } });
-        if (user) {
+        const customer = await this.customerRepository.findOne({
+          where: { telegram_chat_id: chatId },
+        });
+        if (customer) {
           return ctx.reply(
             `ℹ️ Telegram Connection Status:\n` +
-            `• Linked Account: ${user.name}\n` +
-            `• Email: ${user.email}\n` +
-            `• Role: ${user.role}\n` +
-            `• Position: ${user.position}`
+              `• Linked Account: ${customer.customer_name}\n` +
+              `• Email: ${customer.customer_email}\n`,
           );
         } else {
-          return ctx.reply('ℹ️ Account Status: Not linked.\nUse `/link <your_email>` to connect.');
+          return ctx.reply(
+            'ℹ️ Account Status: Not linked.\nUse `/link <your_email>` to connect.',
+          );
         }
       } catch (error) {
         return ctx.reply('❌ Error fetching connection status.');
@@ -152,12 +184,20 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   /**
    * Replace placeholders in message template with user properties
    */
-  private formatMessage(template: string, user: User): string {
+  private formatMessage(
+    template: string,
+    user: User | CustomerTelegram,
+  ): string {
+    const name = 'customer_name' in user ? user.customer_name : user.name;
+    const email = 'customer_email' in user ? user.customer_email : user.email;
+    const role = 'role' in user ? user.role : '';
+    const position = 'position' in user ? user.position : '';
+
     return template
-      .replace(/{name}/g, user.name || '')
-      .replace(/{email}/g, user.email || '')
-      .replace(/{role}/g, user.role || '')
-      .replace(/{position}/g, user.position || '')
+      .replace(/{name}/g, name || '')
+      .replace(/{email}/g, email || '')
+      .replace(/{role}/g, role || '')
+      .replace(/{position}/g, position || '')
       .replace(/{date}/g, new Date().toLocaleDateString());
   }
 
@@ -166,10 +206,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    */
   async broadcastNotification(dto: BroadcastNotificationDto) {
     if (!this.bot) {
-      throw new BadRequestException('Telegram bot is not initialized. Please verify your TELEGRAM_BOT_TOKEN.');
+      throw new BadRequestException(
+        'Telegram bot is not initialized. Please verify your TELEGRAM_BOT_TOKEN.',
+      );
     }
 
-    const query = this.usersRepository.createQueryBuilder('user')
+    const query = this.usersRepository
+      .createQueryBuilder('user')
       .where('user.telegramChatId IS NOT NULL');
 
     if (dto.userIds && dto.userIds.length > 0) {
@@ -189,7 +232,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     if (users.length === 0) {
       return {
         success: true,
-        message: 'No users found matching the filter criteria with linked Telegram accounts.',
+        message:
+          'No users found matching the filter criteria with linked Telegram accounts.',
         sentCount: 0,
       };
     }
@@ -202,10 +246,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       if (!user.telegramChatId) continue;
       const customizedMessage = this.formatMessage(dto.message, user);
       try {
-        await this.bot.telegram.sendMessage(user.telegramChatId, customizedMessage);
+        await this.bot.telegram.sendMessage(
+          user.telegramChatId,
+          customizedMessage,
+        );
         sentCount++;
       } catch (error) {
-        this.logger.error(`Failed to send telegram message to user ${user.id} (${user.email}): ${error.message}`);
+        this.logger.error(
+          `Failed to send telegram message to user ${user.id} (${user.email}): ${error.message}`,
+        );
         failedCount++;
         failures.push({
           userId: user.id,
@@ -229,27 +278,38 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    */
   async sendNotification(dto: SendNotificationDto) {
     if (!this.bot) {
-      throw new BadRequestException('Telegram bot is not initialized. Please verify your TELEGRAM_BOT_TOKEN.');
+      throw new BadRequestException(
+        'Telegram bot is not initialized. Please verify your TELEGRAM_BOT_TOKEN.',
+      );
     }
 
-    const user = await this.usersRepository.findOne({ where: { id: dto.userId } });
+    const user = await this.customerRepository.findOne({
+      where: { id: dto.userId },
+    });
     if (!user) {
       throw new NotFoundException(`User with ID ${dto.userId} not found.`);
     }
 
-    if (!user.telegramChatId) {
-      throw new BadRequestException(`User ${user.name} (${user.email}) does not have a linked Telegram account.`);
+    if (!user.telegram_chat_id) {
+      throw new BadRequestException(
+        `User ${user.customer_name} (${user.customer_email}) does not have a linked Telegram account.`,
+      );
     }
 
     const customizedMessage = this.formatMessage(dto.message, user);
     try {
-      await this.bot.telegram.sendMessage(user.telegramChatId, customizedMessage);
+      await this.bot.telegram.sendMessage(
+        user.telegram_chat_id,
+        customizedMessage,
+      );
       return {
         success: true,
-        message: `Notification sent successfully to ${user.name}.`,
+        message: `Notification sent successfully to ${user.customer_name}.`,
       };
-    } catch (error) {
-      this.logger.error(`Failed to send telegram message to user ${user.id}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send telegram message to user ${user.id}: ${error.message}`,
+      );
       throw new BadRequestException(`Failed to send message: ${error.message}`);
     }
   }
@@ -258,46 +318,62 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    * Get linking status for all users (or only linked users)
    */
   async getLinkingStatus(linkedOnly?: boolean) {
-    const query = this.usersRepository.createQueryBuilder('user')
-      .select(['user.id', 'user.name', 'user.email', 'user.role', 'user.position', 'user.status', 'user.telegramChatId', 'user.telegramUsername']);
+    const query = this.customerRepository
+      .createQueryBuilder('customer')
+      .select([
+        'customer.id',
+        'customer.customer_name',
+        'customer.customer_email',
+        'customer.phone_number',
+        'customer.telegram_chat_id',
+        'customer.telegram_username',
+      ]);
 
     if (linkedOnly) {
-      query.where('user.telegramChatId IS NOT NULL');
+      query.where('user.telegram_chat_id IS NOT NULL');
     }
 
     const users = await query.getMany();
-    return users.map(user => ({
+    return users.map((user) => ({
       id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      position: user.position,
-      status: user.status,
-      telegramLinked: !!user.telegramChatId,
-      telegramUsername: user.telegramUsername || null,
-      telegramChatId: user.telegramChatId || null,
+      name: user.customer_name,
+      email: user.customer_email,
+      phone: user.phone_number,
+      telegramLinked: !!user.telegram_linked,
+      telegramUsername: user.telegram_username || null,
+      telegramChatId: user.telegram_chat_id || null,
     }));
   }
 
   /**
    * Manually link a user to a Telegram Chat ID via REST API
    */
-  async linkManually(email: string, telegramChatId: string, telegramUsername?: string) {
+  async linkManually(
+    email: string,
+    telegramChatId: string,
+    telegramUsername?: string,
+  ) {
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await this.usersRepository.findOne({ where: { email: normalizedEmail } });
-    
+    const user = await this.usersRepository.findOne({
+      where: { email: normalizedEmail },
+    });
+
     if (!user) {
-      throw new NotFoundException(`No registered user found with the email: ${email}`);
+      throw new NotFoundException(
+        `No registered user found with the email: ${email}`,
+      );
     }
 
     user.telegramChatId = telegramChatId;
     if (telegramUsername) {
       user.telegramUsername = telegramUsername;
     }
-    
+
     await this.usersRepository.save(user);
-    this.logger.log(`Telegram account linked manually via API: ${normalizedEmail} -> Chat ID: ${telegramChatId}`);
-    
+    this.logger.log(
+      `Telegram account linked manually via API: ${normalizedEmail} -> Chat ID: ${telegramChatId}`,
+    );
+
     return {
       success: true,
       message: `Successfully linked user ${user.name} (${user.email}) to Telegram Chat ID ${telegramChatId}.`,
@@ -308,7 +384,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         telegramLinked: true,
         telegramChatId: user.telegramChatId,
         telegramUsername: user.telegramUsername,
-      }
+      },
     };
   }
 }
